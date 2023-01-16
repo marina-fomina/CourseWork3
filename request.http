@@ -1,0 +1,48 @@
+POST http://localhost:8080/api/socks/add
+Content-Type: application/json
+
+{
+  "colour": "WHITE",
+  "size": "Size35",
+  "cottonPart": 10,
+  "quantity": 20
+}
+###
+
+POST http://localhost:8080/api/socks/add
+Content-Type: application/json
+
+{
+  "colour": "BLACK",
+  "size": "Size36",
+  "cottonPart": 50,
+  "quantity": 30
+}
+###
+
+PUT http://localhost:8080/api/socks/take
+Content-Type: application/json
+
+{
+  "colour": "WHITE",
+  "size": "Size35",
+  "cottonPart": 10,
+  "quantity": 5
+}
+###
+
+GET http://localhost:8080/api/socks/get
+###
+
+GET http://localhost:8080/api/socks/get?cottonMin=200
+###
+
+DELETE http://localhost:8080/api/socks/remove
+Content-Type: application/json
+
+{
+  "colour": "WHITE",
+  "size": "Size35",
+  "cottonPart": 10,
+  "quantity": 100
+}

@@ -1,6 +1,9 @@
 package ru.fomina.socks.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.headers.Header;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,13 +15,15 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.fomina.socks.dto.SocksDTO;
 import ru.fomina.socks.model.Colour;
 import ru.fomina.socks.model.Size;
 import ru.fomina.socks.model.Socks;
+import ru.fomina.socks.model.WrongQuantityException;
 import ru.fomina.socks.service.SocksService;
 
 @RestController
-@RequestMapping("/api/socks")
+@RequestMapping("/socks")
 @Tag(name = "Носки", description = "CRUD-операции для работы с товаром на складе")
 public class SocksController {
 
@@ -27,6 +32,11 @@ public class SocksController {
     public SocksController(SocksService socksService) {
         this.socksService = socksService;
     }
+
+//    @ExceptionHandler(WrongQuantityException.class)
+//    public ResponseEntity<String> handleWrongQuantityException(WrongQuantityException wrongQuantityException) {
+//        return ResponseEntity.badRequest().body(wrongQuantityException.getMessage());
+//    }
 
     @PostMapping("/add")
     @Operation(
@@ -41,7 +51,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -51,7 +61,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -61,17 +71,17 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             )
     })
-    public ResponseEntity<Socks> addSocks(@RequestBody Socks socks) {
-        if (ObjectUtils.isEmpty(socks.getColour()) || ObjectUtils.isEmpty(socks.getSize()) ||
-                socks.getCottonPart() < 0 || socks.getCottonPart() > 100 || socks.getQuantity() < 0) {
+    public ResponseEntity<SocksDTO> addSocks(@RequestBody SocksDTO socksDTO) {
+        if (socksDTO.getColour() == null || socksDTO.getSize() == null ||
+                socksDTO.getCottonPart() < 0 || socksDTO.getCottonPart() > 100 || socksDTO.getQuantity() < 0) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(socksService.addSocks(socks));
+        return ResponseEntity.ok(socksService.addSocks(socksDTO));
     }
 
     @PutMapping("/take")
@@ -87,7 +97,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -97,7 +107,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -107,18 +117,18 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             )
     })
-    public ResponseEntity<Socks> takeSocks(@RequestBody Socks socks) {
-        if (ObjectUtils.isEmpty(socks.getColour()) || ObjectUtils.isEmpty(socks.getSize()) ||
-                socks.getCottonPart() < 0 || socks.getCottonPart() > 100 || socks.getQuantity() < 0) {
+    public ResponseEntity<Integer> takeSocks(@RequestBody SocksDTO socksDTO) {
+        if (socksDTO.getColour() == null || socksDTO.getSize() == null ||
+                socksDTO.getCottonPart() < 0 || socksDTO.getCottonPart() > 100 || socksDTO.getQuantity() < 0) {
             return ResponseEntity.badRequest().build();
         }
-        Socks newSocks = socksService.takeSocks(socks);
-        return ResponseEntity.ok(newSocks);
+        Integer socksQuantity = socksService.takeSocks(socksDTO);
+        return ResponseEntity.ok(socksQuantity);
     }
 
     @GetMapping("/get")
@@ -133,17 +143,17 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Параметры запроса отсутствуют или имеют некорректный формат",
+                    description = "Параметры запроса имеют некорректный формат",
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -153,19 +163,30 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             )
     })
-    public ResponseEntity<String> getSocks(@RequestParam(required = true) Colour colour,
-                                          @RequestParam(required = true) Size size,
-                                          @RequestParam(required = true) int cottonMin,
-                                          @RequestParam(required = true) int cottonMax) {
-        return null;
+    public ResponseEntity<Integer> getSocksQuantity(@RequestParam(required = false, name = "colour") Colour colour,
+                                          @RequestParam(required = false, name = "size") Size size,
+                                          @RequestParam(required = false, name = "cottonMin") Integer cottonMin,
+                                          @RequestParam(required = false, name = "cottonMax") Integer cottonMax) {
+        Integer socksQuantity = socksService.getSocksQuantity(colour, size, cottonMin, cottonMax);
+        if (cottonMin == null) {
+            return ResponseEntity.ok(socksQuantity);
+        } else if (cottonMin < 0 || cottonMin > 100) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (cottonMax == null) {
+            return ResponseEntity.ok(socksQuantity);
+        } else if (cottonMax < 0 || cottonMax > 100) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(socksQuantity);
     }
 
-    @DeleteMapping("/delete")
+    @DeleteMapping("/remove")
     @Operation(
             summary = "Списание бракованного товара со склада",
             description = "Метод позволяет списать испорченные (бракованные) носки со склада"
@@ -177,7 +198,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -187,7 +208,7 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             ),
@@ -197,15 +218,17 @@ public class SocksController {
                     content = {
                             @Content(
                                     mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Socks.class))
+                                    array = @ArraySchema(schema = @Schema(implementation = SocksDTO.class))
                             )
                     }
             )
     })
-    public ResponseEntity<String> deleteSocks(@RequestBody Socks socks) {
-        if (socksService.deleteSocks(socks)) {
-            return ResponseEntity.ok("Носки списаны со склада");
+    public ResponseEntity<String> removeDamagedSocks(@RequestBody SocksDTO socksDTO) {
+        if (socksDTO.getColour() == null || socksDTO.getSize() == null ||
+                socksDTO.getCottonPart() < 0 || socksDTO.getCottonPart() > 100 || socksDTO.getQuantity() < 0) {
+            return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.noContent().build();
+        socksService.removeDamagedSocks(socksDTO);
+        return ResponseEntity.ok("Носки списаны со склада.");
     }
 }

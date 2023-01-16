@@ -4,16 +4,16 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Objects;
+
 @Getter
 @ToString
-@EqualsAndHashCode
 public class Socks {
     private final Colour colour;
     private final Size size;
     private final int cottonPart;
-    private final int quantity;
 
-    public Socks(Colour colour, Size size, int cottonPart, int quantity) {
+    public Socks(Colour colour, Size size, int cottonPart) {
         if (colour == null) {
             throw new NotEnoughDataException("Цвет носков не указан!");
         } else {
@@ -25,13 +25,22 @@ public class Socks {
             this.size = size;
         }
         if (cottonPart < 0 || cottonPart > 100) {
-            throw new IllegalArgumentException("Содержание хлопка указано неверно!");
+            throw new WrongQuantityException("Содержание хлопка должно быть от 0 до 100%!");
         } else {
             this.cottonPart = cottonPart;
         }
-        if (quantity < 0) {
-            throw new IllegalArgumentException("Количество пар носков на складе указано неверно!");
-        }
-        this.quantity = quantity;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Socks socks = (Socks) o;
+        return cottonPart == socks.cottonPart && colour == socks.colour && size == socks.size;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(colour, size, cottonPart);
     }
 }
