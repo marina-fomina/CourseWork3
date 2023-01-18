@@ -33,10 +33,6 @@ public class SocksController {
         this.socksService = socksService;
     }
 
-//    @ExceptionHandler(WrongQuantityException.class)
-//    public ResponseEntity<String> handleWrongQuantityException(WrongQuantityException wrongQuantityException) {
-//        return ResponseEntity.badRequest().body(wrongQuantityException.getMessage());
-//    }
 
     @PostMapping("/add")
     @Operation(

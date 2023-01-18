@@ -2,16 +2,18 @@ package ru.fomina.socks.model;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.util.Objects;
 
 @Getter
 @ToString
+@NoArgsConstructor
 public class Socks {
-    private final Colour colour;
-    private final Size size;
-    private final int cottonPart;
+    private Colour colour;
+    private Size size;
+    private int cottonPart;
 
     public Socks(Colour colour, Size size, int cottonPart) {
         if (colour == null) {

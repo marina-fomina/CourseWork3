@@ -46,3 +46,6 @@ Content-Type: application/json
   "cottonPart": 10,
   "quantity": 100
 }
+###
+
+GET http://localhost:8080/api/files/socks/export

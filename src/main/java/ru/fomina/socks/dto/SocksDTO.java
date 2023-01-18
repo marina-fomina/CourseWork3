@@ -1,12 +1,14 @@
 package ru.fomina.socks.dto;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import ru.fomina.socks.model.Colour;
 import ru.fomina.socks.model.NotEnoughDataException;
 import ru.fomina.socks.model.Size;
 import ru.fomina.socks.model.WrongQuantityException;
 
 @Getter
+@NoArgsConstructor
 public class SocksDTO {
     private Colour colour;
     private Size size;
