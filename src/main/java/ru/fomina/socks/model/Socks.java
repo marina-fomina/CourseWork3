@@ -1,5 +1,7 @@
 package ru.fomina.socks.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,7 +17,8 @@ public class Socks {
     private Size size;
     private int cottonPart;
 
-    public Socks(Colour colour, Size size, int cottonPart) {
+    @JsonCreator
+    public Socks(@JsonProperty("colour") Colour colour, @JsonProperty("size") Size size, @JsonProperty("cottonPart") int cottonPart) {
         if (colour == null) {
             throw new NotEnoughDataException("Цвет носков не указан!");
         } else {

@@ -1,37 +1,33 @@
 package ru.fomina.socks.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.stereotype.Service;
 import ru.fomina.socks.dto.SocksDTO;
-import ru.fomina.socks.model.Colour;
-import ru.fomina.socks.model.Size;
-import ru.fomina.socks.model.Socks;
-import ru.fomina.socks.model.WrongQuantityException;
+import ru.fomina.socks.model.*;
 import ru.fomina.socks.service.FilesService;
 import ru.fomina.socks.service.SocksService;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
 public class SocksServiceImpl implements SocksService {
 
     private final FilesService filesService;
+
+    @JsonDeserialize(keyUsing = MyKeyDeserializer.class)
     private HashMap<Socks, Integer> socksMap = new HashMap<>();
 
-    public SocksServiceImpl(FilesService filesService) {
+    private final ObjectMapper objectMapper;
+
+    public SocksServiceImpl(FilesService filesService, ObjectMapper objectMapper) {
         this.filesService = filesService;
+        this.objectMapper = objectMapper;
     }
 
     @PostConstruct
@@ -127,23 +123,13 @@ public class SocksServiceImpl implements SocksService {
     private void readSocksFromFile() {
         try {
             String json = filesService.readSocksFromFile();
-            socksMap = new ObjectMapper().readValue(json, new TypeReference<HashMap<Socks, Integer>>() {
+            SimpleModule module = new SimpleModule();
+            module.addKeyDeserializer(Socks.class, new MyKeyDeserializer());
+            objectMapper.registerModule(module);
+            socksMap = objectMapper.readValue(json, new TypeReference<HashMap<Socks, Integer>>() {
             });
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
     }
-
-//    @Override
-//    public File exportFile() throws IOException {
-//            Path path = Path.of(socksFilePath, socksFileName);
-//            Files.deleteIfExists(path);
-//            Files.createFile(path);
-//            List<SocksDTO> socksList = new ArrayList<>();
-//            for (Map.Entry<Socks, Integer> entry : socksMap.entrySet()) {
-//                socksList.add(mapToDTO(entry.getKey(), entry.getValue()));
-//            }
-//            Files.write(path, objectMapper.writeValueAsBytes(socksList));
-//            return new File(socksFilePath + "/" + socksFileName);
-//    }
 }
