@@ -8,9 +8,17 @@ public interface FilesService {
 
     boolean saveSocksToFile(String json);
 
+    boolean saveOperationsToFile(String json);
+
     String readSocksFromFile();
 
     File getSocksFile();
+
+    boolean cleanOperationsFile();
+
+    File getOperationsFile();
+
+    String readOperationsFromFile();
 
     boolean cleanSocksFile();
 }

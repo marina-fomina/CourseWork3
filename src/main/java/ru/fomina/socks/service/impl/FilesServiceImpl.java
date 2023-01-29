@@ -18,6 +18,12 @@ public class FilesServiceImpl implements FilesService {
     @Value("socks.json")
     private String socksFileName;
 
+    @Value("src/main/resources")
+    private String operationsFilePath;
+
+    @Value("operations.json")
+    private String operationsFileName;
+
     @Override
     public boolean saveSocksToFile(String json) {
         try {
@@ -44,6 +50,28 @@ public class FilesServiceImpl implements FilesService {
         return new File(socksFilePath + "/" + socksFileName);
     }
 
+
+    @Override
+    public boolean saveOperationsToFile(String json) {
+        try {
+            cleanOperationsFile();
+            Files.writeString(Path.of(operationsFilePath, operationsFileName), json);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public String readOperationsFromFile() {
+        try {
+            return Files.readString(Path.of(operationsFilePath, operationsFileName));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public boolean cleanSocksFile() {
         Path path = Path.of(socksFilePath, socksFileName);
@@ -56,28 +84,23 @@ public class FilesServiceImpl implements FilesService {
             return false;
         }
     }
-//    private final ObjectMapper objectMapper;
-//    private final HashMap<Socks, Integer> socksMap = new HashMap<>();
 
-//    public FilesServiceImpl(ObjectMapper objectMapper) {
-//        this.objectMapper = objectMapper;
-//    }
+    @Override
+    public boolean cleanOperationsFile() {
+        Path path = Path.of(operationsFilePath, operationsFileName);
+        try {
+            Files.deleteIfExists(path);
+            Files.createFile(path);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
-//    @Override
-//    public FileSystemResource exportFile() {
-//        try {
-//            Path path = Path.of(socksFilePath, socksFileName);
-//                    Files.createFile(path);
-//            List<SocksDTO> socksList = new ArrayList<>();
-//            for (Map.Entry<Socks, Integer> entry : socksMap.entrySet()) {
-//                socksList.add(mapToDTO(entry.getKey(), entry.getValue()));
-//            }
-//            Files.write(path, objectMapper.writeValueAsBytes(socksList));
-//            return new FileSystemResource(path);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e);
-//        }
-//    }
+    @Override
+    public File getOperationsFile() {
+        return new File(operationsFilePath + "/" + operationsFileName);
+    }
 
 }

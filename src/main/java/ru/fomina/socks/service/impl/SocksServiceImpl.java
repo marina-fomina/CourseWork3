@@ -1,43 +1,48 @@
 package ru.fomina.socks.service.impl;
 
-import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 import ru.fomina.socks.dto.SocksDTO;
 import ru.fomina.socks.model.*;
+import ru.fomina.socks.service.AuditService;
 import ru.fomina.socks.service.FilesService;
 import ru.fomina.socks.service.SocksService;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class SocksServiceImpl implements SocksService {
 
     private final FilesService filesService;
+    private final AuditService auditService;
 
-    @JsonDeserialize(keyUsing = MyKeyDeserializer.class)
     private HashMap<Socks, Integer> socksMap = new HashMap<>();
+
+    @Value("src/main/resources")
+    private String socksFilePath;
+
+    @Value("socks.json")
+    private String socksFileName;
 
     private final ObjectMapper objectMapper;
 
-    public SocksServiceImpl(FilesService filesService, ObjectMapper objectMapper) {
+    public SocksServiceImpl(FilesService filesService, AuditService auditService, ObjectMapper objectMapper) {
         this.filesService = filesService;
+        this.auditService = auditService;
         this.objectMapper = objectMapper;
     }
 
-    @PostConstruct
-    private void init() {
-        try {
-            readSocksFromFile();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public SocksDTO addSocks(SocksDTO socksDTO) {
@@ -47,13 +52,14 @@ public class SocksServiceImpl implements SocksService {
         } else {
             socksMap.put(socks, socksDTO.getQuantity());
         }
+        auditService.addOperationRecord(socks, socksDTO.getQuantity());
         saveSocksToFile();
         return socksDTO;
     }
 
     @Override
     public Integer takeSocks(SocksDTO socksDTO) {
-        decreaseSocks(socksDTO);
+        decreaseSocks(socksDTO, true);
         Socks socks = mapToSocks(socksDTO);
         saveSocksToFile();
         return socksMap.get(socks);
@@ -61,10 +67,10 @@ public class SocksServiceImpl implements SocksService {
 
     @Override
     public void removeDamagedSocks(SocksDTO socksDTO) {
-        decreaseSocks(socksDTO);
+        decreaseSocks(socksDTO, false);
     }
 
-    private void decreaseSocks(SocksDTO socksDTO) {
+    private void decreaseSocks(SocksDTO socksDTO, boolean areSocksTaken) {
         Socks socks = mapToSocks(socksDTO);
         int socksQuantity = socksMap.getOrDefault(socks, 0);
         if (!socksMap.containsKey(socks)) {
@@ -74,6 +80,11 @@ public class SocksServiceImpl implements SocksService {
             socksMap.put(socks, socksMap.get(socks) - socksDTO.getQuantity());
         } else {
             throw new WrongQuantityException("На складе нет таких носков в нужном количестве!");
+        }
+        if (areSocksTaken) {
+            auditService.takeOperationRecord(socks, socksDTO.getQuantity());
+        } else {
+            auditService.removeOperationRecord(socks, socksDTO.getQuantity());
         }
     }
 
@@ -111,24 +122,32 @@ public class SocksServiceImpl implements SocksService {
         return dto;
     }
 
-    private void saveSocksToFile() {
+    private FileSystemResource saveSocksToFile() {
         try {
-            String json = new ObjectMapper().writeValueAsString(socksMap);
-            filesService.saveSocksToFile(json);
-        } catch (JsonProcessingException e) {
+            Path path = Path.of(socksFilePath, socksFileName);
+            Files.deleteIfExists(path);
+            Files.createFile(path);
+            List<SocksDTO> socksList = new ArrayList<>();
+            for (Map.Entry<Socks, Integer> entry : socksMap.entrySet()) {
+                socksList.add(mapToDTO(entry.getKey(), entry.getValue()));
+            }
+            Files.write(path, objectMapper.writeValueAsBytes(socksList));
+            return new FileSystemResource(path);
+        } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
-    private void readSocksFromFile() {
+    private void readSocksFromFile(InputStream inputStream) {
         try {
-            String json = filesService.readSocksFromFile();
-            SimpleModule module = new SimpleModule();
-            module.addKeyDeserializer(Socks.class, new MyKeyDeserializer());
-            objectMapper.registerModule(module);
-            socksMap = objectMapper.readValue(json, new TypeReference<HashMap<Socks, Integer>>() {
+            List<SocksDTO> socksList = objectMapper.readValue(inputStream, new TypeReference<List<SocksDTO>>() {
             });
-        } catch (JsonProcessingException e) {
+            this.socksMap.clear();
+            for (SocksDTO dto : socksList) {
+                addSocks(dto);
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

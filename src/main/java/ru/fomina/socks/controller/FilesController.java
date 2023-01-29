@@ -107,4 +107,80 @@ public class FilesController {
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+
+    @GetMapping(value = "/operations/export", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Скачивание json-файла с данными об операциях по приемке, списанию или выдаче носков")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Файл с данными об операциях в формате JSON успешно загружен с сервера",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = Operation.class))
+                            )
+                    }
+            ),
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Запрос успешно обработан. На сервере нет файла для ответа на запрос",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = Operation.class))
+                            )
+                    }
+            )
+    })
+    public ResponseEntity<InputStreamResource> downloadOperationsFile() throws FileNotFoundException {
+        File file = filesService.getOperationsFile();
+
+        if (file.exists()) {
+            InputStreamResource resource = new InputStreamResource(new FileInputStream(file));
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .contentLength(file.length())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; fileName=\"Operations.json\"")
+                    .body(resource);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    @PostMapping(value = "/operations/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Загрузка на сервер нового json-файла с данными об операциях по приемке, списанию или выдаче носков")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Файл с данными об операциях с носками в формате JSON успешно загружен на сервер",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = Operation.class))
+                            )
+                    }
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Внутренняя ошибка сервера",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = Operation.class))
+                            )
+                    }
+            )
+    })
+    public ResponseEntity<Void> uploadOperationsFile(@RequestParam MultipartFile file) {
+        filesService.cleanOperationsFile();
+        File operationsFile = filesService.getOperationsFile();
+
+        try (FileOutputStream fos = new FileOutputStream(operationsFile)) {
+            IOUtils.copy(file.getInputStream(), fos);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
 }
